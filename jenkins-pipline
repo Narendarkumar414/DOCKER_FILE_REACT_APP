@@ -1,0 +1,83 @@
+node (label: 'slave2') {
+   stage('Git Checkout') {
+       sh '''
+            cd /home/jenkins/QA/medzgo-doctors-portal-v1
+            git checkout .
+            git fetch
+            git fetch origin
+            git checkout ${BRANCH}
+            git pull origin ${BRANCH}
+            
+        '''     
+   }
+
+   
+
+   stage('build') {
+       sh '''
+            cd /home/jenkins/QA/medzgo-doctors-portal-v1
+            npm install
+        '''
+   }
+   
+  
+
+    stage('Moving Dockerfile to app ') {
+       sh '''
+            cd /home/jenkins/QA/docker-config-docter-portalv1
+             sudo cp Dockerfile .dockerignore /home/jenkins/QA/medzgo-doctors-portal-v1
+        '''
+   }
+
+
+    stage('Moving env file to app ') {
+       sh '''
+            cd /home/jenkins/QA/medzgo-doctors-portal-v1_envfile
+             sudo cp .env /home/jenkins/QA/medzgo-doctors-portal-v1
+        '''
+   }
+
+   stage('image-push') {
+       sh '''
+           cd /home/jenkins/QA/medzgo-doctors-portal-v1
+           ls
+           sudo docker login docker-registery.com:5443 -u 'sdaddasd-admin' -p 'vfqwesadaryweqfrefeaggqew58589sy1'
+
+           sudo docker build -t docker-registery.com:5443/medzgo-doctors-portal-qa:v_${BUILD_NUMBER} .
+
+           sudo docker push docker-registery.com:5443/medzgo-doctors-portal-qa:v_${BUILD_NUMBER}
+    
+        '''
+   }
+
+   stage('delete  repo content') {
+       sh '''
+           cd /home/jenkins/QA/medzgo-doctors-portal-v1
+           sudo rm -rf  *
+            
+        '''
+   }
+
+     stage('Removing images from build server') {
+       sh '''
+           cd /home/jenkins
+           sudo ./docker-clean.sh 
+        '''
+   }
+
+    stage('deploy') {
+       sh 'ssh -o StrictHostKeyChecking=no -i /home/jenkins/wfewgfwefqfwgakWEwegweFfQrAFWEGFewreEGWGy.pem ubuntu@31.118.361.89 " sudo docker rm -f medzgo-doctors-portal-qa; sudo docker run -it -d --name medzgo-doctors-portal-qa -p 8880:3000 docker-registery.medzgo.com:5443/medzgo-doctors-portal-qa:v_${BUILD_NUMBER}; sudo docker ps | grep medzgo-doctors-portal-qa"'
+       try {
+            sh 'ssh -o StrictHostKeyChecking=no -i /home/jenkins/wfwakey.pem ubuntu@3.110.251.62 " sh docker_clean_up.sh"'
+        }
+        catch (err) {
+            echo err.getMessage()
+        }
+   }
+   
+
+
+ 
+
+  
+}
